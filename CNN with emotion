@@ -1,0 +1,57 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+# Load the Amazon review dataset
+reviews = np.load("amazon_reviews.npy")
+labels = np.load("amazon_labels.npy")
+
+# Preprocess the reviews and labels
+max_vocab_size = 10000  # maximum number of words to keep based on word frequency
+max_sequence_length = 100  # maximum length of a review
+
+# Tokenize the reviews and pad them to the same length
+tokenizer = Tokenizer(num_words=max_vocab_size)
+sequences = tokenizer.texts_to_sequences(reviews)
+reviews_padded = pad_sequences(sequences, maxlen=max_sequence_length)
+
+# Convert the labels to one-hot encoded vectors
+num_classes = 2  # positive and negative
+labels_one_hot = tf.keras.utils.to_categorical(labels, num_classes)
+
+# Split the dataset into train and test sets
+test_size = 0.2
+X_train, X_test, y_train, y_test = train_test_split(reviews_padded, labels_one_hot, test_size=test_size)
+
+# Build a CNN model for sentiment analysis
+model = tf.keras.Sequential()
+
+# Add an Embedding layer to map the words to dense vectors
+model.add(tf.keras.layers.Embedding(max_vocab_size, 128, input_length=max_sequence_length))
+
+# Add a Conv1D layer with 32 filters and a kernel size of 3
+model.add(tf.keras.layers.Conv1D(32, 3, activation="relu"))
+# Add a Dense layer with the number of classes and a softmax activation
+model.add(tf.keras.layers.Dense(num_classes, activation="softmax"))
+
+# Compile the model with an Adam optimizer and a categorical cross-entropy loss
+model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
+
+# Fit the model to the training data
+model.fit(X_train, y_train, epochs=5, batch_size=128)
+
+# Evaluate the model on the test set
+loss, accuracy = model.evaluate(X_test, y_test)
+print("Test loss: {:.4f}".format(loss))
+print("Test accuracy: {:.2f}".format(accuracy))
+
+
+# Add a MaxPooling1D layer with a pool size of 2
+model.add(tf.keras.layers.MaxPooling1D(2))
+
+# Add a Flatten layer to flatten the output of the Conv1D layer
+model.add(tf.keras.layers.Flatten())
+
+# Add a Dense layer with 64 units and a ReLU activation
+model.add(tf.keras.layers.Dense(64, activation="relu
